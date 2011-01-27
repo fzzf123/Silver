@@ -107,7 +107,7 @@ module Silver
         # word to its metaphoned equivalents and returns an array of the original words in its metaphones.
 
         def morph(string)
-            string.gsub!(/\..{1,4}$/,"")
+            string.gsub!(/\.[a-zA-Z]{1,4}$/,"")
             words = string.split(/[^a-zA-Z]/).reject{|q| q == "" || (q.length < 5 && q.capitalize != q)} - COMMON_WORDS 
             morphed_words = words.map{|q| [q,Text::Metaphone.double_metaphone(q)]}
             morphed_words

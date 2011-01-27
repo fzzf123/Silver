@@ -1,26 +1,48 @@
 module Silver
 
+    #### Search
+
+    # Searches an indexed database. What else would it do?
+
     class Search
 
-        def initialize(query,table,field,offset=0)
+        # Takes a query and a redis key from a previous indexing. There is an optional offset
+        # that can be used to paginate. It defaults to returning 30 results.
+        # 
+        # Example, query picture captions for "Barack Obama":
+        #     search = Silver::Search.new("barack obama","picturecaption")
+       
+        def initialize(query,key,number=30,offset=0)
             @query = query
-            @table = table
-            @field = field
+            @key = key
+            @number = number
             @offset = offset
             @r = Redis.new
             @r.select 4
         end
 
-        def perform
-            morphed_words = self.morph_words
+        # Send a query to be metaphoned, finds the matching ids for the query and then
+        # returns the results. Finally it only returns entries that are shared by both words.
+        #
+        # Takes a block that takes an id and then queries the database for that row. Again, Silver
+        # can be used for services that "row" is a bad metaphor like REST apis. However, it is easy 
+        # to write.
+        #
+        # Ex:
+        #     search.perform{|id| Picture.get(id) }
+
+        def perform(&accessor)
+            morphed_words = morph_words
             morphed_words.map! do |word|
                 phones = word[1]
                 phones = self.find_matching_phones(phones)
                 phones
             end
-            results = morphed_words.reduce{|memo,obj| memo & obj}.slice(0,30)
-            results.map{|result| Object.const_get(@table).get(result)}
+            results = morphed_words.reduce{|memo,obj| memo & obj}.slice(@offset,@offset+@number)
+            results.map{|result| accessor.call(result)}
         end
+
+        # Takes the instance's query, splits it into words, metaphones each word and returns the array of metaphoned words.
 
         def morph_words
             words = @query.split(/[^a-zA-Z0-9]/)
@@ -28,10 +50,13 @@ module Silver
             morphed_words
         end
 
+        # Takes an array of metaphones and returns the matching keys in the index. Since we are using double metaphone,
+        # it unions the results for the two possible metaphones.i
+
         def find_matching_phones(phones)
             phones.map! do |phone|
                 if phone
-                    "#{@field}:#{phone}"
+                    "#{@key}:#{phone}"
                 else
                     nil
                 end
