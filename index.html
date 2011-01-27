@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>index.rb</title>
+  <link rel="stylesheet" href="http://jashkenas.github.com/docco/resources/docco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+        <a class="source" href="cache.html">cache.rb</a>
+        <a class="source" href="index.html">index.rb</a>
+        <a class="source" href="search.html">search.rb</a>
+        <a class="source" href="silver.html">silver.rb</a>
+        </div>
+    </div>
+  </div>
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>index.rb</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-1'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-1">#</a>
+        </div>
+        
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="nb">require</span> <span class="no">File</span><span class="o">.</span><span class="n">expand_path</span><span class="p">(</span><span class="no">File</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">__FILE__</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/common_words.rb&#39;</span><span class="p">)</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-2">#</a>
+        </div>
+        <h3>Boring new error</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-3">#</a>
+        </div>
+        <p> Just makes a new sublcass of RuntimeError so we can raise database
+ errors later</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">AttrError</span> <span class="o">&lt;</span> <span class="no">RuntimeError</span>
+<span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-4">#</a>
+        </div>
+        <h3>Indexing</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><span class="k">module</span> <span class="nn">Silver</span>
+
+    <span class="k">class</span> <span class="nc">Index</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-5">#</a>
+        </div>
+        <p> Create a new index for some given database or web service. Silver
+ doesn&rsquo;t do any connecting to a database, it requires you to pass
+ a query to it as a block. Use whatever ORM you like best.</p>
+
+<p> key is the name this index will be stored with in Redis.
+ time_field is the name of the field used for determining whether or not
+ there are new entries.
+ query is a block that takes the date of the most recently indexed item
+ as a parameter. Query should always sort entries in descending order.</p>
+
+<p> Example to index all large pictures based on their captions:</p>
+
+<p> index = Silver::Index.new(&ldquo;picturecaptions&rdquo;,&ldquo;created_time&rdquo;) do |time|
+   Pictures.all(:order => :created_time.desc, :created_time.gt => time, :size => &ldquo;large&rdquo;)
+ end</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">time_field</span><span class="p">,</span><span class="o">&amp;</span><span class="n">query</span><span class="p">)</span>
+            <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span>
+            <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">12</span>
+            <span class="vi">@key</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="vi">@time_field</span> <span class="o">=</span> <span class="n">time_field</span>
+            <span class="vi">@query</span> <span class="o">=</span> <span class="n">query</span>
+            <span class="vi">@new_results</span> <span class="o">=</span> <span class="o">[]</span>
+            <span class="vi">@indexed_items</span> <span class="o">=</span> <span class="o">[]</span>
+        <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-6">#</a>
+        </div>
+        <p> Looks for the most recent date indexed and only fetch
+ entries newer than that date from the database.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">find_and_update</span>
+
+            <span class="n">last_time</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="n">key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">)</span> <span class="o">||</span> <span class="s2">&quot;Jan. 1, 1970&quot;</span>
+            <span class="n">new_results</span> <span class="o">=</span> <span class="vi">@query</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="no">DateTime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">last_date</span><span class="p">))</span>
+            <span class="n">new_date</span> <span class="o">=</span> <span class="n">new_results</span><span class="o">[</span><span class="mi">0</span><span class="o">][</span><span class="vi">@time_field</span><span class="o">].</span><span class="n">to_s</span>
+            <span class="vi">@r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">,</span><span class="n">new_date</span><span class="p">)</span>
+            <span class="vi">@new_results</span> <span class="o">=</span> <span class="n">new_results</span>
+        <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-7">#</a>
+        </div>
+        <p> Takes the new results and a block to access the field by which indexing will take place.
+ Sends these off to a double metaphone method to allow for fuzzy searching.</p>
+
+<p> accessor should be a block that takes a result and returns an array containing, first, the item&rsquo;s id
+ and, second, the value by which to index.</p>
+
+<p> Ex:</p>
+
+<p> index.parse do |result|
+   output = result.caption || result.label || &ldquo;&rdquo;
+   id = result.id
+   [id,output]
+ end</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="o">&amp;</span><span class="n">accessor</span><span class="p">)</span>
+
+            <span class="vi">@new_results</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span>
+                <span class="k">begin</span> 
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">accessor</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                    <span class="n">time</span> <span class="o">=</span> <span class="no">Time</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">result</span><span class="o">[</span><span class="vi">@time_field</span><span class="o">].</span><span class="n">to_s</span><span class="p">)</span><span class="o">.</span><span class="n">to_i</span>
+                    <span class="k">raise</span> <span class="no">AttrError</span><span class="p">,</span> <span class="s2">&quot;Specified attribute not found in item </span><span class="si">#{</span><span class="n">value</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="o">!</span><span class="n">attribute</span> 
+                    <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">morph</span><span class="p">(</span><span class="n">value</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">)</span>
+                    <span class="n">morphed_words</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">word</span><span class="o">|</span> <span class="n">write</span><span class="p">(</span><span class="n">word</span><span class="p">,</span><span class="n">value</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">,</span><span class="n">time</span><span class="p">)}</span>
+                <span class="k">rescue</span> <span class="no">AttrError</span> <span class="o">=&gt;</span> <span class="n">e</span>
+                    <span class="nb">puts</span> <span class="n">e</span>
+                <span class="k">end</span>
+           
+            <span class="k">end</span>
+           
+        <span class="k">end</span>
+
+        <span class="kp">private</span>
+        </pre></div>
+      </td>
+    </tr>
+    <tr id='section-8'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-8">#</a>
+        </div>
+        <p> Takes a metaphoned string, the id of the row that contains it, and the time created/modified of that row
+ and writes to the database to phonemes by which that row is now indexed.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="n">word</span><span class="p">,</span><span class="nb">id</span><span class="p">,</span><span class="n">time</span><span class="p">)</span>
+            
+            <span class="n">text</span> <span class="o">=</span> <span class="n">word</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span>
+            <span class="n">phonemes</span> <span class="o">=</span> <span class="n">word</span><span class="o">[</span><span class="mi">1</span><span class="o">].</span><span class="n">compact</span>
+            <span class="n">phonemes</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">phoneme</span><span class="o">|</span>
+                <span class="vi">@r</span><span class="o">.</span><span class="n">zadd</span> <span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:</span><span class="si">#{</span><span class="n">phoneme</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="nb">id</span>
+            <span class="k">end</span>
+        <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-9'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-9">#</a>
+        </div>
+        <p> Note: this method needs some work/ is not perfect.
+ Takes a string, removes any file extension, splits it on non-alpha characters, throws out empty words
+ words smaller than 5 characters that are not capitalized and all common words. Finally it converts each
+ word to its metaphoned equivalents and returns an array of the original words in its metaphones.</p>
+
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">morph</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+            <span class="n">string</span><span class="o">.</span><span class="n">gsub!</span><span class="p">(</span><span class="sr">/\..{1,4}$/</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">words</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sr">/[^a-zA-Z]/</span><span class="p">)</span><span class="o">.</span><span class="n">reject</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="n">q</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="o">||</span> <span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">length</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">.</span><span class="n">capitalize</span> <span class="o">!=</span> <span class="n">q</span><span class="p">)}</span> <span class="o">-</span> <span class="no">COMMON_WORDS</span> 
+            <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="o">[</span><span class="n">q</span><span class="p">,</span><span class="no">Text</span><span class="o">::</span><span class="no">Metaphone</span><span class="o">.</span><span class="n">double_metaphone</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">]</span><span class="p">}</span>
+            <span class="n">morphed_words</span>
+        <span class="k">end</span>
+
+    <span class="k">end</span>
+
+<span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    </table>
+</div>
+</body>
