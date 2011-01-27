@@ -10,4 +10,7 @@ group :development do
   gem "bundler", "~> 1.0.0"
   gem "jeweler", "~> 1.5.2"
   gem "rcov", ">= 0"
+  gem "redis", "~>  2.1.1"
+  gem "yajl-ruby", ">=  0.7.7"
+  gem "text", "~>  0.2.0"
 end
