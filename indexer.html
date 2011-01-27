@@ -8,17 +8,6 @@
 <body>
 <div id='container'>
   <div id="background"></div>
-  <div id="jump_to">
-    Jump To &hellip;
-    <div id="jump_wrapper">
-      <div id="jump_page">
-        <a class="source" href="cache.html">cache.rb</a>
-        <a class="source" href="indexer.html">indexer.rb</a>
-        <a class="source" href="search.html">search.rb</a>
-        <a class="source" href="silver.html">silver.rb</a>
-        </div>
-    </div>
-  </div>
   <table cellspacing=0 cellpadding=0>
   <thead>
     <tr>
@@ -92,9 +81,13 @@
 
 <p> Example to index all large pictures based on their captions:</p>
 
-<pre><code> index = Silver::Index.new("picturecaptions","created_time") do |time|
-   Pictures.all(:order =&gt; :created_time.desc, :created_time.gt =&gt; time, :size =&gt; "large")
- end
+<pre><code>  index = Silver::Index.new("picturecaptions",
+                            "created_time") do |time|
+
+    Pictures.all(:order =&gt; :created_time.desc, 
+                 :created_time.gt =&gt; time, 
+                 :size =&gt; "large")
+  end
 </code></pre>
       </td>
       <td class=code>
