@@ -11,18 +11,18 @@ require 'rake'
 
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "silver"
   gem.homepage = "http://github.com/tpm/silver"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{Makes your queries faster with the power of Redis.}
+  gem.description = %Q{A lightweight, Redis-backed cacher and indexer for databases, REST API's, really anything you can query.}
   gem.email = "hinton.erik@gmail.com"
   gem.authors = ["Erik Hin-tone"]
-  # Include your dependencies below. Runtime dependencies are required when using your gem,
-  # and development dependencies are only needed for development (ie running rake tasks, tests, etc)
-  #  gem.add_runtime_dependency 'jabber4r', '> 0.1'
-  #  gem.add_development_dependency 'rspec', '> 1.2.3'
+  gem.add_runtime_dependency  "redis", "~>  2.1.1"
+  gem.add_runtime_dependency  "yajl-ruby", ">=  0.7.7"
+  gem.add_runtime_dependency  "text", "~>  0.2.0"
+  gem.add_development_dependency "dm-core", "~> 1.0.0"
+  gem.add_development_dependency "dm-sqlite-adapter", "~> 1.0.0"
 end
 Jeweler::RubygemsDotOrgTasks.new
 

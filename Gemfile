@@ -13,4 +13,6 @@ group :development do
   gem "redis", "~>  2.1.1"
   gem "yajl-ruby", ">=  0.7.7"
   gem "text", "~>  0.2.0"
+  gem "dm-core", "~> 1.0.0"
+  gem "dm-sqlite-adapter", "~> 1.0.0"
 end
