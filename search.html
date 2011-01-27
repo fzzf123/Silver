@@ -8,17 +8,6 @@
 <body>
 <div id='container'>
   <div id="background"></div>
-  <div id="jump_to">
-    Jump To &hellip;
-    <div id="jump_wrapper">
-      <div id="jump_page">
-        <a class="source" href="cache.html">cache.rb</a>
-        <a class="source" href="indexer.html">indexer.rb</a>
-        <a class="source" href="search.html">search.rb</a>
-        <a class="source" href="silver.html">silver.rb</a>
-        </div>
-    </div>
-  </div>
   <table cellspacing=0 cellpadding=0>
   <thead>
     <tr>
@@ -33,43 +22,117 @@
           <a class="octothorpe" href="#section-1">#</a>
         </div>
         
-
       </td>
       <td class=code>
-        <div class='highlight'><pre><span class="k">module</span> <span class="nn">Silver</span>
+        <div class='highlight'><pre><span class="k">module</span> <span class="nn">Silver</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-2'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-2">#</a>
+        </div>
+        <h3>Search</h3>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre></pre></div>
+      </td>
+    </tr>
+    <tr id='section-3'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-3">#</a>
+        </div>
+        <p> Searches an indexed database. What else would it do?</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>    <span class="k">class</span> <span class="nc">Search</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-4'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-4">#</a>
+        </div>
+        <p> Takes a query and a redis key from a previous indexing. There is an optional offset
+ that can be used to paginate. It defaults to returning 30 results.</p>
 
-    <span class="k">class</span> <span class="nc">Search</span>
+<p> Example, query picture captions for &ldquo;Barack Obama&rdquo;:</p>
 
-        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">query</span><span class="p">,</span><span class="n">table</span><span class="p">,</span><span class="n">field</span><span class="p">,</span><span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<pre><code> search = Silver::Search.new("barack obama","picturecaption")
+</code></pre>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>       
+        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">query</span><span class="p">,</span><span class="n">key</span><span class="p">,</span><span class="n">number</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span><span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="vi">@query</span> <span class="o">=</span> <span class="n">query</span>
-            <span class="vi">@table</span> <span class="o">=</span> <span class="n">table</span>
-            <span class="vi">@field</span> <span class="o">=</span> <span class="n">field</span>
+            <span class="vi">@key</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="vi">@number</span> <span class="o">=</span> <span class="n">number</span>
             <span class="vi">@offset</span> <span class="o">=</span> <span class="n">offset</span>
             <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span>
             <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">4</span>
-        <span class="k">end</span>
+        <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-5'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-5">#</a>
+        </div>
+        <p> Send a query to be metaphoned, finds the matching ids for the query and then
+ returns the results. Finally it only returns entries that are shared by both words.</p>
 
-        <span class="k">def</span> <span class="nf">perform</span>
-            <span class="n">morphed_words</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">morph_words</span>
+<p> Takes a block that takes an id and then queries the database for that row. Again, Silver
+ can be used for services that &ldquo;row&rdquo; is a bad metaphor like REST apis. However, it is easy
+ to write.</p>
+
+<p> Ex:</p>
+
+<pre><code> search.perform{|id| Picture.get(id) }
+</code></pre>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="o">&amp;</span><span class="n">accessor</span><span class="p">)</span>
+            <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">morph_words</span>
             <span class="n">morphed_words</span><span class="o">.</span><span class="n">map!</span> <span class="k">do</span> <span class="o">|</span><span class="n">word</span><span class="o">|</span>
                 <span class="n">phones</span> <span class="o">=</span> <span class="n">word</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span>
                 <span class="n">phones</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">find_matching_phones</span><span class="p">(</span><span class="n">phones</span><span class="p">)</span>
                 <span class="n">phones</span>
             <span class="k">end</span>
-            <span class="n">results</span> <span class="o">=</span> <span class="n">morphed_words</span><span class="o">.</span><span class="n">reduce</span><span class="p">{</span><span class="o">|</span><span class="n">memo</span><span class="p">,</span><span class="n">obj</span><span class="o">|</span> <span class="n">memo</span> <span class="o">&amp;</span> <span class="n">obj</span><span class="p">}</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span>
-            <span class="n">results</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">result</span><span class="o">|</span> <span class="no">Object</span><span class="o">.</span><span class="n">const_get</span><span class="p">(</span><span class="vi">@table</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">result</span><span class="p">)}</span>
-        <span class="k">end</span>
-
-        <span class="k">def</span> <span class="nf">morph_words</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">morphed_words</span><span class="o">.</span><span class="n">reduce</span><span class="p">{</span><span class="o">|</span><span class="n">memo</span><span class="p">,</span><span class="n">obj</span><span class="o">|</span> <span class="n">memo</span> <span class="o">&amp;</span> <span class="n">obj</span><span class="p">}</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="vi">@offset</span><span class="p">,</span><span class="vi">@offset</span><span class="o">+</span><span class="vi">@number</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">result</span><span class="o">|</span> <span class="n">accessor</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">result</span><span class="p">)}</span>
+        <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-6'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-6">#</a>
+        </div>
+        <p> Takes the instance&rsquo;s query, splits it into words, metaphones each word and returns the array of metaphoned words.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">morph_words</span>
             <span class="n">words</span> <span class="o">=</span> <span class="vi">@query</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sr">/[^a-zA-Z0-9]/</span><span class="p">)</span>
             <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">word</span><span class="o">|</span> <span class="o">[</span><span class="n">word</span><span class="p">,</span><span class="no">Text</span><span class="o">::</span><span class="no">Metaphone</span><span class="o">.</span><span class="n">double_metaphone</span><span class="p">(</span><span class="n">word</span><span class="p">)</span><span class="o">]</span><span class="p">}</span>
             <span class="n">morphed_words</span>
-        <span class="k">end</span>
+        <span class="k">end</span></pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-7">#</a>
+        </div>
+        <p> Takes an array of metaphones and returns the matching keys in the index. Since we are using double metaphone,
+ it unions the results for the two possible metaphones.i</p>
 
-        <span class="k">def</span> <span class="nf">find_matching_phones</span><span class="p">(</span><span class="n">phones</span><span class="p">)</span>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">find_matching_phones</span><span class="p">(</span><span class="n">phones</span><span class="p">)</span>
             <span class="n">phones</span><span class="o">.</span><span class="n">map!</span> <span class="k">do</span> <span class="o">|</span><span class="n">phone</span><span class="o">|</span>
                 <span class="k">if</span> <span class="n">phone</span>
-                    <span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@field</span><span class="si">}</span><span class="s2">:</span><span class="si">#{</span><span class="n">phone</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:</span><span class="si">#{</span><span class="n">phone</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="k">else</span>
                     <span class="kp">nil</span>
                 <span class="k">end</span>
