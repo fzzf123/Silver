@@ -1,6 +1,6 @@
-= silver
+= Silver
 
-Description goes here.
+Silver is a lightweight, redis-backed database cacher and indexer.
 
 == Contributing to silver
  
