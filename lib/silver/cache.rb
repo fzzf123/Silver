@@ -64,12 +64,12 @@ module Silver
     #     end 
 
 
-    def initialize(key,time_field,&query)
+    def initialize(key,time_field,redis_options={},&query)
     
         @key = key
         @time_field = time_field
         @query = query
-        @r = Redis.new
+        @r = Redis.new(redis_options)
         @r.select 11
     
     end

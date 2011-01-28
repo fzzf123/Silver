@@ -34,8 +34,8 @@ module Silver
         #                     :size => "large")
         #      end
 
-        def initialize(key,time_field,&query)
-            @r = Redis.new
+        def initialize(key,time_field,redis_options={},&query)
+            @r = Redis.new(redis_options)
             @r.select 12
             @key = key
             @time_field = time_field

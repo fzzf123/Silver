@@ -12,12 +12,12 @@ module Silver
         # Example, query picture captions for "Barack Obama":
         #     search = Silver::Search.new("barack obama","picturecaption")
        
-        def initialize(query,key,number=30,offset=0)
+        def initialize(query,key,redis_options={},number=30,offset=0)
             @query = query
             @key = key
             @number = number
             @offset = offset
-            @r = Redis.new
+            @r = Redis.new(redis_options)
             @r.select 4
         end
 
