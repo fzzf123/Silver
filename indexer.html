@@ -8,6 +8,17 @@
 <body>
 <div id='container'>
   <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+        <a class="source" href="cache.html">cache.rb</a>
+        <a class="source" href="common_words.html">common_words.rb</a>
+        <a class="source" href="indexer.html">indexer.rb</a>
+        <a class="source" href="search.html">search.rb</a>
+        </div>
+    </div>
+  </div>
   <table cellspacing=0 cellpadding=0>
   <thead>
     <tr>
@@ -91,8 +102,8 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">time_field</span><span class="p">,</span><span class="o">&amp;</span><span class="n">query</span><span class="p">)</span>
-            <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">time_field</span><span class="p">,</span><span class="n">redis_options</span><span class="o">=</span><span class="p">{},</span><span class="o">&amp;</span><span class="n">query</span><span class="p">)</span>
+            <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">redis_options</span><span class="p">)</span>
             <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">12</span>
             <span class="vi">@key</span> <span class="o">=</span> <span class="n">key</span>
             <span class="vi">@time_field</span> <span class="o">=</span> <span class="n">time_field</span>
@@ -109,32 +120,14 @@
         </div>
         <p> Looks for the most recent date indexed and only fetch
  entries newer than that date from the database.</p>
-      </td>
-      <td class=code>
-        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">find_and_update</span>
 
-            <span class="n">last_time</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="n">key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">)</span> <span class="o">||</span> <span class="s2">&quot;Jan. 1, 1970&quot;</span>
-            <span class="n">new_results</span> <span class="o">=</span> <span class="vi">@query</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="no">DateTime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">last_date</span><span class="p">))</span>
-            <span class="n">new_date</span> <span class="o">=</span> <span class="n">new_results</span><span class="o">[</span><span class="mi">0</span><span class="o">][</span><span class="vi">@time_field</span><span class="o">].</span><span class="n">to_s</span>
-            <span class="vi">@r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">,</span><span class="n">new_date</span><span class="p">)</span>
-            <span class="vi">@new_results</span> <span class="o">=</span> <span class="n">new_results</span>
-        <span class="k">end</span></pre></div>
-      </td>
-    </tr>
-    <tr id='section-7'>
-      <td class=docs>
-        <div class="octowrap">
-          <a class="octothorpe" href="#section-7">#</a>
-        </div>
-        <p> Takes the new results and a block to access the field by which indexing will take place.
- Sends these off to a double metaphone method to allow for fuzzy searching.</p>
-
-<p> accessor should be a block that takes a result and returns an array containing, first, the item&rsquo;s id
- and, second, the value by which to index.</p>
+<p> Takes a block that takes a results from the database and returns the value by which to index.
+ accessor should be a block that takes an individual results and returns and array containing, first,
+ the item&rsquo;s id and, second, the value by which to index.</p>
 
 <p> Ex:</p>
 
-<pre><code> index.parse do |result|
+<pre><code> index.find_and_update do |result|
    output = result.caption || result.label || "" 
    id = result.id
    [id,output]
@@ -142,13 +135,41 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="o">&amp;</span><span class="n">accessor</span><span class="p">)</span>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">find_and_update</span><span class="p">(</span><span class="o">&amp;</span><span class="n">accessor</span><span class="p">)</span>
+
+            <span class="n">last_date</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">)</span> <span class="o">||</span> <span class="s2">&quot;Jan. 1, 1970&quot;</span>
+            <span class="n">new_results</span> <span class="o">=</span> <span class="vi">@query</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="no">DateTime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">last_date</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">new_results</span><span class="o">.</span><span class="n">empty?</span>
+                <span class="kp">false</span>
+            <span class="k">else</span>
+                <span class="n">new_date</span> <span class="o">=</span> <span class="n">new_results</span><span class="o">[</span><span class="mi">0</span><span class="o">][</span><span class="vi">@time_field</span><span class="o">].</span><span class="n">to_s</span>
+                <span class="vi">@r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">,</span><span class="n">new_date</span><span class="p">)</span>
+                <span class="vi">@new_results</span> <span class="o">=</span> <span class="n">new_results</span>
+                <span class="n">parse</span><span class="p">(</span><span class="n">accessor</span><span class="p">)</span>
+                <span class="kp">true</span>
+            <span class="k">end</span>
+        <span class="k">end</span>
+
+
+        <span class="kp">private</span>
+        </pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-7">#</a>
+        </div>
+        <p> Sends results off to a double metaphone method to allow for fuzzy searching.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">accessor</span><span class="p">)</span>
 
             <span class="vi">@new_results</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span>
                 <span class="k">begin</span> 
                     <span class="n">value</span> <span class="o">=</span> <span class="n">accessor</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
                     <span class="n">time</span> <span class="o">=</span> <span class="no">Time</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">result</span><span class="o">[</span><span class="vi">@time_field</span><span class="o">].</span><span class="n">to_s</span><span class="p">)</span><span class="o">.</span><span class="n">to_i</span>
-                    <span class="k">raise</span> <span class="no">AttrError</span><span class="p">,</span> <span class="s2">&quot;Specified attribute not found in item </span><span class="si">#{</span><span class="n">value</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="o">!</span><span class="n">attribute</span> 
+                    <span class="k">raise</span> <span class="no">AttrError</span><span class="p">,</span> <span class="s2">&quot;Specified attribute not found in item </span><span class="si">#{</span><span class="n">value</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="o">!</span><span class="n">value</span>
                     <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">morph</span><span class="p">(</span><span class="n">value</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">)</span>
                     <span class="n">morphed_words</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">word</span><span class="o">|</span> <span class="n">write</span><span class="p">(</span><span class="n">word</span><span class="p">,</span><span class="n">value</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">,</span><span class="n">time</span><span class="p">)}</span>
                 <span class="k">rescue</span> <span class="no">AttrError</span> <span class="o">=&gt;</span> <span class="n">e</span>
@@ -158,8 +179,6 @@
             <span class="k">end</span>
            
         <span class="k">end</span>
-
-        <span class="kp">private</span>
         </pre></div>
       </td>
     </tr>
@@ -195,7 +214,7 @@
       </td>
       <td class=code>
         <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">morph</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
-            <span class="n">string</span><span class="o">.</span><span class="n">gsub!</span><span class="p">(</span><span class="sr">/\..{1,4}$/</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">string</span><span class="o">.</span><span class="n">gsub!</span><span class="p">(</span><span class="sr">/\.[a-zA-Z]{1,4}$/</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
             <span class="n">words</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sr">/[^a-zA-Z]/</span><span class="p">)</span><span class="o">.</span><span class="n">reject</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="n">q</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="o">||</span> <span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">length</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="o">&amp;&amp;</span> <span class="n">q</span><span class="o">.</span><span class="n">capitalize</span> <span class="o">!=</span> <span class="n">q</span><span class="p">)}</span> <span class="o">-</span> <span class="no">COMMON_WORDS</span> 
             <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="o">[</span><span class="n">q</span><span class="p">,</span><span class="no">Text</span><span class="o">::</span><span class="no">Metaphone</span><span class="o">.</span><span class="n">double_metaphone</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="o">]</span><span class="p">}</span>
             <span class="n">morphed_words</span>

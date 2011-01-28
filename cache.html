@@ -8,6 +8,17 @@
 <body>
 <div id='container'>
   <div id="background"></div>
+  <div id="jump_to">
+    Jump To &hellip;
+    <div id="jump_wrapper">
+      <div id="jump_page">
+        <a class="source" href="cache.html">cache.rb</a>
+        <a class="source" href="common_words.html">common_words.rb</a>
+        <a class="source" href="indexer.html">indexer.rb</a>
+        <a class="source" href="search.html">search.rb</a>
+        </div>
+    </div>
+  </div>
   <table cellspacing=0 cellpadding=0>
   <thead>
     <tr>
@@ -66,7 +77,7 @@
     <span class="k">def</span> <span class="nf">to_bare</span>
 
         <span class="n">bhash</span> <span class="o">=</span> <span class="no">BareHash</span><span class="o">.</span><span class="n">new</span>
-        <span class="nb">self</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span> <span class="n">bhash</span><span class="o">[</span><span class="n">k</span><span class="o">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">to_s</span><span class="p">}</span>
+        <span class="nb">self</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span> <span class="n">bhash</span><span class="o">[</span><span class="n">k</span><span class="o">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">}</span>
         <span class="n">bhash</span>
 
     <span class="k">end</span>
@@ -118,13 +129,13 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">time_field</span><span class="p">,</span><span class="o">&amp;</span><span class="n">query</span><span class="p">)</span>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">time_field</span><span class="p">,</span><span class="n">redis_options</span><span class="o">=</span><span class="p">{},</span><span class="o">&amp;</span><span class="n">query</span><span class="p">)</span>
     
         <span class="vi">@key</span> <span class="o">=</span> <span class="n">key</span>
         <span class="vi">@time_field</span> <span class="o">=</span> <span class="n">time_field</span>
         <span class="vi">@query</span> <span class="o">=</span> <span class="n">query</span>
-        <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span>
-        <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">11</span>
+        <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">redis_options</span><span class="p">)</span>
+        <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">12</span>
     
     <span class="k">end</span></pre></div>
       </td>
@@ -165,7 +176,20 @@
           <span class="n">final_results</span> <span class="o">=</span> <span class="n">old_results</span>
       <span class="k">else</span> 
           <span class="n">write_new</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-          <span class="n">final_results</span> <span class="o">=</span> <span class="n">results</span> <span class="o">+</span> <span class="n">old_results</span>
+          </pre></div>
+      </td>
+    </tr>
+    <tr id='section-7'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-7">#</a>
+        </div>
+        <p> Why do we go back to Redis here instead of just merging old and new? Because it&rsquo;s faster and cleaner than
+ selectively determining which types are changed by the to_json (like Dates) and which are preservered (like
+ Hashes).</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre>          <span class="n">final_results</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">lrange</span><span class="p">(</span><span class="vi">@key</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="no">JSON</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">q</span><span class="p">)}</span>
       <span class="k">end</span>
       
       <span class="n">final_results</span> <span class="o">=</span> <span class="n">final_results</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span> 
@@ -174,10 +198,10 @@
     <span class="k">end</span></pre></div>
       </td>
     </tr>
-    <tr id='section-7'>
+    <tr id='section-8'>
       <td class=docs>
         <div class="octowrap">
-          <a class="octothorpe" href="#section-7">#</a>
+          <a class="octothorpe" href="#section-8">#</a>
         </div>
         <p> A helper method to keep the redis list at a reasonable size.</p>
 
@@ -193,10 +217,10 @@
     <span class="kp">private</span></pre></div>
       </td>
     </tr>
-    <tr id='section-8'>
+    <tr id='section-9'>
       <td class=docs>
         <div class="octowrap">
-          <a class="octothorpe" href="#section-8">#</a>
+          <a class="octothorpe" href="#section-9">#</a>
         </div>
         <p> Writes the results to redis by pushing them in reverse order on the head
  of the redis list. This ensures that the first result will always be the newest.
