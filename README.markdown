@@ -57,6 +57,12 @@ Also, the search initializer for Silver's indexing takes optional number and off
     search = Silver::Search.new("Barack Obama","blog_pictures",{:host => "127.0.0.1",:port => "6969"},50,10)
 This will return results 10-60.
 
+### Rocco Annotated Source
+
+* [Cacher](http://tpm.github.com/Silver/cache.html)
+* [Indexer](http://tpm.github.com/Silver/indexer.html)
+* [Searcher](http://tpm.github.com/Silver/search.html)
+
 ## Improvements to be made
 
 * Better Search
