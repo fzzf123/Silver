@@ -1,3 +1,7 @@
 require 'silver/indexer'
 require 'silver/search'
 require 'silver/cache'
+require 'rubygems'
+require 'redis'
+require 'text'
+require 'yajl/json_gem'

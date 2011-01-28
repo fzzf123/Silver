@@ -18,7 +18,7 @@ module Silver
             @number = number
             @offset = offset
             @r = Redis.new(redis_options)
-            @r.select 4
+            @r.select 12
         end
 
         # Send a query to be metaphoned, finds the matching ids for the query and then

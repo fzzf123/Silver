@@ -70,7 +70,7 @@ module Silver
         @time_field = time_field
         @query = query
         @r = Redis.new(redis_options)
-        @r.select 11
+        @r.select 12
     
     end
 

@@ -46,37 +46,46 @@ module Silver
 
         # Looks for the most recent date indexed and only fetch
         # entries newer than that date from the database.
-
-        def find_and_update
-
-            last_time = @r.get("#{key}:last") || "Jan. 1, 1970"
-            new_results = @query.call(DateTime.parse(last_date))
-            new_date = new_results[0][@time_field].to_s
-            @r.set("#{@key}:last",new_date)
-            @new_results = new_results
-        end
-
-        # Takes the new results and a block to access the field by which indexing will take place.
-        # Sends these off to a double metaphone method to allow for fuzzy searching. 
-        #
-        # accessor should be a block that takes a result and returns an array containing, first, the item's id
-        # and, second, the value by which to index.
+        # 
+        # Takes a block that takes a results from the database and returns the value by which to index.
+        # accessor should be a block that takes an individual results and returns and array containing, first,
+        # the item's id and, second, the value by which to index.
         #
         # Ex:
         #
-        #     index.parse do |result|
+        #     index.find_and_update do |result|
         #       output = result.caption || result.label || "" 
         #       id = result.id
         #       [id,output]
         #     end
 
-        def parse(&accessor)
+        def find_and_update(&accessor)
+
+            last_date = @r.get("#{@key}:last") || "Jan. 1, 1970"
+            new_results = @query.call(DateTime.parse(last_date))
+            if new_results.empty?
+                false
+            else
+                new_date = new_results[0][@time_field].to_s
+                @r.set("#{@key}:last",new_date)
+                @new_results = new_results
+                parse(accessor)
+                true
+            end
+        end
+
+
+        private
+        
+        # Sends results off to a double metaphone method to allow for fuzzy searching. 
+
+        def parse(accessor)
 
             @new_results.each do |result|
                 begin 
                     value = accessor.call(result)
                     time = Time.parse(result[@time_field].to_s).to_i
-                    raise AttrError, "Specified attribute not found in item #{value[0]}" if !attribute 
+                    raise AttrError, "Specified attribute not found in item #{value[0]}" if !value
                     morphed_words = morph(value[1])
                     morphed_words.each{|word| write(word,value[0],time)}
                 rescue AttrError => e
@@ -86,8 +95,6 @@ module Silver
             end
            
         end
-
-        private
         
         # Takes a metaphoned string, the id of the row that contains it, and the time created/modified of that row
         # and writes to the database to phonemes by which that row is now indexed.
