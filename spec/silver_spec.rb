@@ -102,7 +102,74 @@ end
 
 describe "cacher" do
 
+   it "caches new additions to the database" do
+       r = Redis.new
+       r.select 12
+       r.del "parents"
+       r.del "parents:last"
 
+       cache = Silver::Cache.new("parents","date") do |date|
+           Parent.all(:order => :date.desc, :date.gt => date)
+       end
+
+       results = cache.find
+       results.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00"}, {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00"}, {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00"}])
+       cached_results = r.lrange "parents",0,-1
+       cached_results.should eq(["{\"age\":33,\"name\":\"Baz\",\"id\":2,\"date\":\"2011-01-28T10:40:45-05:00\"}", "{\"age\":24,\"name\":\"Erik\",\"id\":1,\"date\":\"2011-01-28T10:34:10-05:00\"}", "{\"age\":2,\"name\":\"Erik Hinton\",\"id\":11,\"date\":\"1980-01-02T00:00:00+00:00\"}"])
+   end
+
+   it "caches associations" do
+       r = Redis.new
+       r.select 12
+       r.del "parents"
+       r.del "parents:last"
+
+       cache = Silver::Cache.new("parents","date") do |date|
+           Parent.all(:order => :date.desc, :date.gt => date)
+       end
+       results = cache.find do |parent|
+           children = parent.children
+           names = children.map{|child| child["name"]}
+           {:children => names}
+       end
+
+       results.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00", "children"=>["Bar"]}, 
+                         {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00", "children"=>["Foo"]}, 
+                         {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00", "children"=>[]}])
+       cached_results = r.lrange "parents",0,-1
+       cached_results.should eq(["{\"age\":33,\"children\":[\"Bar\"],\"name\":\"Baz\",\"id\":2,\"date\":\"2011-01-28T10:40:45-05:00\"}", "{\"age\":24,\"children\":[\"Foo\"],\"name\":\"Erik\",\"id\":1,\"date\":\"2011-01-28T10:34:10-05:00\"}", "{\"age\":2,\"children\":[],\"name\":\"Erik Hinton\",\"id\":11,\"date\":\"1980-01-02T00:00:00+00:00\"}"])
+
+   end
+
+   it "retrieves old results from redis" do
+
+   end
+
+   it "culls the cache" do
+
+   end
+
+end
+
+describe "barehash" do
+
+    it "makes an indifferent hash" do
+        a = BareHash.new
+        a[:name] = "Erik"
+        a["age"] = 14
+        a["name"].should eq("Erik")
+        a[:age].should eq(14)
+    end
+
+    it "converts a hash to a barehash" do
+
+        a = {:name => "Erik", "age" => 24, "DOB" => DateTime.parse("Jan. 3, 1987")}
+        b = a.to_bare
+        b["name"].should eq("Erik")
+        b["age"].should eq(24)
+        b["DOB"].should eq(DateTime.parse("Jan. 3, 1987"))
+
+    end
 
 end
 

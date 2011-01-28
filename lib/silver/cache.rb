@@ -26,7 +26,7 @@ class Hash
     def to_bare
 
         bhash = BareHash.new
-        self.each{|k,v| bhash[k] = v.to_s}
+        self.each{|k,v| bhash[k] = v}
         bhash
 
     end
@@ -102,7 +102,12 @@ module Silver
           final_results = old_results
       else 
           write_new(results)
-          final_results = results + old_results
+          
+          # Why do we go back to Redis here instead of just merging old and new? Because it's faster and cleaner than 
+          # selectively determining which types are changed by the to_json (like Dates) and which are preservered (like
+          # Hashes).
+
+          final_results = @r.lrange(@key,0,-1).map{|q| JSON.parse(q)}
       end
       
       final_results = final_results.map do |result| 
