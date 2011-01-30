@@ -48,7 +48,19 @@
  as HashWithIndifferentAccess but without ActiveSupport</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">BareHash</span> <span class="o">&lt;</span> <span class="no">Hash</span>
+
+    <span class="k">def</span> <span class="nf">[]</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">self</span><span class="o">.</span><span class="n">include?</span> <span class="n">key</span>
+            <span class="nb">self</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">else</span>
+            <span class="n">key</span><span class="o">.</span><span class="n">class</span> <span class="o">==</span> <span class="nb">String</span> <span class="p">?</span> <span class="nb">self</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">to_sym</span><span class="p">,</span><span class="kp">nil</span><span class="p">)</span> <span class="p">:</span> <span class="nb">self</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">to_s</span><span class="p">,</span> <span class="kp">nil</span><span class="p">)</span>
+        <span class="k">end</span>
+
+    <span class="k">end</span>
+
+<span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-3'>
@@ -60,7 +72,17 @@
  is good for mixing results with Redis results which are always stored as strings.</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre><span class="k">class</span> <span class="nc">Hash</span>
+
+    <span class="k">def</span> <span class="nf">to_bare</span>
+
+        <span class="n">bhash</span> <span class="o">=</span> <span class="no">BareHash</span><span class="o">.</span><span class="n">new</span>
+        <span class="nb">self</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span> <span class="n">bhash</span><span class="o">[</span><span class="n">k</span><span class="o">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">}</span>
+        <span class="n">bhash</span>
+
+    <span class="k">end</span>
+
+<span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-4'>
@@ -71,7 +93,11 @@
         <h3>Caching</h3>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre><span class="k">module</span> <span class="nn">Silver</span>
+
+  <span class="k">class</span> <span class="nc">Cache</span>
+    
+    <span class="kp">attr_reader</span> <span class="ss">:key</span><span class="p">,</span> <span class="ss">:time_field</span><span class="p">,</span> <span class="ss">:query</span></pre></div>
       </td>
     </tr>
     <tr id='section-5'>
@@ -103,7 +129,15 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">time_field</span><span class="p">,</span><span class="n">redis_options</span><span class="o">=</span><span class="p">{},</span><span class="o">&amp;</span><span class="n">query</span><span class="p">)</span>
+    
+        <span class="vi">@key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="vi">@time_field</span> <span class="o">=</span> <span class="n">time_field</span>
+        <span class="vi">@query</span> <span class="o">=</span> <span class="n">query</span>
+        <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">redis_options</span><span class="p">)</span>
+        <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">12</span>
+    
+    <span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-6'>
@@ -126,7 +160,22 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>      
+    <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="o">&amp;</span><span class="n">callback</span><span class="p">)</span>
+      
+      <span class="n">old_results</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">lrange</span><span class="p">(</span><span class="vi">@key</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="no">JSON</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">q</span><span class="p">)}</span>
+      <span class="n">last_date</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">)</span> <span class="o">||</span> <span class="s2">&quot;1970-01-01&quot;</span>
+      <span class="n">new_results</span> <span class="o">=</span> <span class="vi">@query</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="no">DateTime</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">last_date</span><span class="p">))</span>
+      
+      <span class="n">results</span> <span class="o">=</span> <span class="n">new_results</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span> 
+        <span class="n">callback</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+      <span class="k">end</span> 
+      
+      <span class="k">if</span> <span class="n">results</span><span class="o">.</span><span class="n">empty?</span>
+          <span class="n">final_results</span> <span class="o">=</span> <span class="n">old_results</span>
+      <span class="k">else</span> 
+          <span class="n">write_new</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+          </pre></div>
       </td>
     </tr>
     <tr id='section-7'>
@@ -139,7 +188,13 @@
  Hashes).</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>          <span class="n">final_results</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">lrange</span><span class="p">(</span><span class="vi">@key</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">q</span><span class="o">|</span> <span class="no">JSON</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">q</span><span class="p">)}</span>
+      <span class="k">end</span>
+      
+      <span class="n">final_results</span> <span class="o">=</span> <span class="n">final_results</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span> 
+          <span class="n">result</span><span class="o">.</span><span class="n">to_bare</span>
+      <span class="k">end</span>
+    <span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-8'>
@@ -152,7 +207,13 @@
 <p> length is the number of entries to reduce the redis to</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">cull</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+
+        <span class="vi">@r</span><span class="o">.</span><span class="n">ltrim</span><span class="p">(</span><span class="vi">@key</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">length</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">end</span>
+    
+    <span class="kp">private</span></pre></div>
       </td>
     </tr>
     <tr id='section-9'>
@@ -167,7 +228,20 @@
 
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>    <span class="k">def</span> <span class="nf">write_new</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+          
+          <span class="n">new_date</span> <span class="o">=</span> <span class="n">results</span><span class="o">[</span><span class="mi">0</span><span class="o">][</span><span class="vi">@time_field</span><span class="o">].</span><span class="n">to_s</span>
+          <span class="vi">@r</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:last&quot;</span><span class="p">,</span><span class="n">new_date</span><span class="p">)</span>
+          
+          <span class="n">results</span><span class="o">.</span><span class="n">reverse</span><span class="o">.</span><span class="n">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="o">|</span>
+            <span class="vi">@r</span><span class="o">.</span><span class="n">lpush</span><span class="p">(</span><span class="vi">@key</span><span class="p">,</span><span class="n">result</span><span class="o">.</span><span class="n">to_json</span><span class="p">)</span>
+          <span class="k">end</span>
+
+    <span class="k">end</span>
+
+  <span class="k">end</span>
+
+<span class="k">end</span></pre></div>
       </td>
     </tr>
   </table>

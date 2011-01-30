@@ -35,7 +35,7 @@
         
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre><span class="k">module</span> <span class="nn">Silver</span></pre></div>
       </td>
     </tr>
     <tr id='section-2'>
@@ -57,7 +57,7 @@
         <p> Searches an indexed database. What else would it do?</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>    <span class="k">class</span> <span class="nc">Search</span></pre></div>
       </td>
     </tr>
     <tr id='section-4'>
@@ -74,7 +74,15 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>       
+        <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">query</span><span class="p">,</span><span class="n">key</span><span class="p">,</span><span class="n">redis_options</span><span class="o">=</span><span class="p">{},</span><span class="n">number</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span><span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="vi">@query</span> <span class="o">=</span> <span class="n">query</span>
+            <span class="vi">@key</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="vi">@number</span> <span class="o">=</span> <span class="n">number</span>
+            <span class="vi">@offset</span> <span class="o">=</span> <span class="n">offset</span>
+            <span class="vi">@r</span> <span class="o">=</span> <span class="no">Redis</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">redis_options</span><span class="p">)</span>
+            <span class="vi">@r</span><span class="o">.</span><span class="n">select</span> <span class="mi">12</span>
+        <span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-5'>
@@ -95,7 +103,16 @@
 </code></pre>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">perform</span><span class="p">(</span><span class="o">&amp;</span><span class="n">accessor</span><span class="p">)</span>
+            <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">morph_words</span>
+            <span class="n">morphed_words</span><span class="o">.</span><span class="n">map!</span> <span class="k">do</span> <span class="o">|</span><span class="n">word</span><span class="o">|</span>
+                <span class="n">phones</span> <span class="o">=</span> <span class="n">word</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span>
+                <span class="n">phones</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">find_matching_phones</span><span class="p">(</span><span class="n">phones</span><span class="p">)</span>
+                <span class="n">phones</span>
+            <span class="k">end</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">morphed_words</span><span class="o">.</span><span class="n">reduce</span><span class="p">{</span><span class="o">|</span><span class="n">memo</span><span class="p">,</span><span class="n">obj</span><span class="o">|</span> <span class="n">memo</span> <span class="o">&amp;</span> <span class="n">obj</span><span class="p">}</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="vi">@offset</span><span class="p">,</span><span class="vi">@offset</span><span class="o">+</span><span class="vi">@number</span><span class="p">)</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">result</span><span class="o">|</span> <span class="n">accessor</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">result</span><span class="p">)}</span>
+        <span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-6'>
@@ -106,7 +123,11 @@
         <p> Takes the instance&rsquo;s query, splits it into words, metaphones each word and returns the array of metaphoned words.</p>
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">morph_words</span>
+            <span class="n">words</span> <span class="o">=</span> <span class="vi">@query</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="sr">/[^a-zA-Z0-9]/</span><span class="p">)</span>
+            <span class="n">morphed_words</span> <span class="o">=</span> <span class="n">words</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">word</span><span class="o">|</span> <span class="o">[</span><span class="n">word</span><span class="p">,</span><span class="no">Text</span><span class="o">::</span><span class="no">Metaphone</span><span class="o">.</span><span class="n">double_metaphone</span><span class="p">(</span><span class="n">word</span><span class="p">)</span><span class="o">]</span><span class="p">}</span>
+            <span class="n">morphed_words</span>
+        <span class="k">end</span></pre></div>
       </td>
     </tr>
     <tr id='section-7'>
@@ -119,7 +140,22 @@
 
       </td>
       <td class=code>
-        <div class='highlight'><pre></pre></div>
+        <div class='highlight'><pre>        <span class="k">def</span> <span class="nf">find_matching_phones</span><span class="p">(</span><span class="n">phones</span><span class="p">)</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">map!</span> <span class="k">do</span> <span class="o">|</span><span class="n">phone</span><span class="o">|</span>
+                <span class="k">if</span> <span class="n">phone</span>
+                    <span class="s2">&quot;</span><span class="si">#{</span><span class="vi">@key</span><span class="si">}</span><span class="s2">:</span><span class="si">#{</span><span class="n">phone</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">else</span>
+                    <span class="kp">nil</span>
+                <span class="k">end</span>
+            <span class="k">end</span>
+            <span class="n">phones</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">zunionstore</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="n">phones</span><span class="o">.</span><span class="n">compact</span>
+            <span class="n">phones</span> <span class="o">=</span> <span class="vi">@r</span><span class="o">.</span><span class="n">zrevrange</span> <span class="s2">&quot;temp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">phones</span>
+        <span class="k">end</span>
+
+    <span class="k">end</span>
+
+<span class="k">end</span></pre></div>
       </td>
     </tr>
   </table>
