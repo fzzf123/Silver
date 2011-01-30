@@ -112,7 +112,9 @@ describe "cacher" do
            Parent.all(:order => :date.desc, :date.gt => date)
        end
 
-       results = cache.find
+       results = cache.find |result| do
+         result.attributes
+       end
        results.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00"}, {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00"}, {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00"}])
        cached_results = r.lrange "parents",0,-1
        cached_results.should eq(["{\"age\":33,\"name\":\"Baz\",\"id\":2,\"date\":\"2011-01-28T10:40:45-05:00\"}", "{\"age\":24,\"name\":\"Erik\",\"id\":1,\"date\":\"2011-01-28T10:34:10-05:00\"}", "{\"age\":2,\"name\":\"Erik Hinton\",\"id\":11,\"date\":\"1980-01-02T00:00:00+00:00\"}"])
@@ -127,10 +129,13 @@ describe "cacher" do
        cache = Silver::Cache.new("parents","date") do |date|
            Parent.all(:order => :date.desc, :date.gt => date)
        end
+
        results = cache.find do |parent|
            children = parent.children
            names = children.map{|child| child["name"]}
-           {:children => names}
+           attrs = parent.attributes
+           c = {:children => names}
+           attrs.merge c
        end
 
        results.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00", "children"=>["Bar"]}, 

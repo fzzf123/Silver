@@ -77,11 +77,15 @@ module Silver
     # Queries Redis, returns new entries and inserts them into Redis.
     # 
     # callback is block that gets called for every new results, receives the result
-    # and returns a hash of additional attributes. This is used to query associations.
+    # and returns the hash to be cached. This can used to query associations.
     #
     # Example to cache and the query the database and include any categories the entry might have:
     #
-    #     cache.find{|entry| {:categories => entry.categories}}
+    #     cache.find do |entry| 
+    #       attrs = entry.attributes
+    #       cats = {:categories => entry.categories}
+    #       attrs.merge cats
+    #     end
       
     def find(&callback)
       
@@ -90,12 +94,7 @@ module Silver
       new_results = @query.call(DateTime.parse(last_date))
       
       results = new_results.map do |result| 
-        if block_given?
-            add_on = callback.call(result)
-            result.attributes.merge add_on
-        else
-          result.attributes
-        end
+        callback.call(result)
       end 
       
       if results.empty?
