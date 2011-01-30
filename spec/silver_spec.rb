@@ -112,12 +112,12 @@ describe "cacher" do
            Parent.all(:order => :date.desc, :date.gt => date)
        end
 
-       results = cache.find |result| do
+       results = cache.find do |result|
          result.attributes
        end
        results.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00"}, {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00"}, {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00"}])
        cached_results = r.lrange "parents",0,-1
-       cached_results.should eq(["{\"age\":33,\"name\":\"Baz\",\"id\":2,\"date\":\"2011-01-28T10:40:45-05:00\"}", "{\"age\":24,\"name\":\"Erik\",\"id\":1,\"date\":\"2011-01-28T10:34:10-05:00\"}", "{\"age\":2,\"name\":\"Erik Hinton\",\"id\":11,\"date\":\"1980-01-02T00:00:00+00:00\"}"])
+       cached_results.map{|result| JSON.parse(result)}.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00"}, {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00"}, {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00"}])
    end
 
    it "caches associations" do
@@ -142,7 +142,9 @@ describe "cacher" do
                          {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00", "children"=>["Foo"]}, 
                          {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00", "children"=>[]}])
        cached_results = r.lrange "parents",0,-1
-       cached_results.should eq(["{\"age\":33,\"children\":[\"Bar\"],\"name\":\"Baz\",\"id\":2,\"date\":\"2011-01-28T10:40:45-05:00\"}", "{\"age\":24,\"children\":[\"Foo\"],\"name\":\"Erik\",\"id\":1,\"date\":\"2011-01-28T10:34:10-05:00\"}", "{\"age\":2,\"children\":[],\"name\":\"Erik Hinton\",\"id\":11,\"date\":\"1980-01-02T00:00:00+00:00\"}"])
+       cached_results.map{|result| JSON.parse(result)}.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00", "children"=>["Bar"]}, 
+                         {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00", "children"=>["Foo"]}, 
+                         {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00", "children"=>[]}])
 
    end
 
