@@ -76,6 +76,7 @@ module Silver
 
     # Queries Redis, returns new entries and inserts them into Redis.
     # 
+    # update is an optional parameter that, if false, will just return cached results and not look for new ones.
     # callback is block that gets called for every new results, receives the result
     # and returns the hash to be cached. This can used to query associations.
     #
@@ -87,26 +88,30 @@ module Silver
     #       attrs.merge cats
     #     end
       
-    def find(&callback)
+    def find(update=true,&callback)
       
       old_results = @r.lrange(@key,0,-1).map{|q| JSON.parse(q)}
-      last_date = @r.get("#{@key}:last") || "1970-01-01"
-      new_results = @query.call(DateTime.parse(last_date))
-      
-      results = new_results.map do |result| 
-        callback.call(result)
-      end 
-      
-      if results.empty?
-          final_results = old_results
-      else 
-          write_new(results)
-          
-          # Why do we go back to Redis here instead of just merging old and new? Because it's faster and cleaner than 
-          # selectively determining which types are changed by the to_json (like Dates) and which are preservered (like
-          # Hashes).
+     
+      if update
+        last_date = @r.get("#{@key}:last") || "1970-01-01"
+        new_results = @query.call(DateTime.parse(last_date))
+        results = new_results.map do |result| 
+          callback.call(result)
+        end 
 
-          final_results = @r.lrange(@key,0,-1).map{|q| JSON.parse(q)}
+        if results.empty?
+            final_results = old_results
+        else 
+            write_new(results)
+            
+            # Why do we go back to Redis here instead of just merging old and new? Because it's faster and cleaner than 
+            # selectively determining which types are changed by the to_json (like Dates) and which are preservered (like
+            # Hashes).
+
+            final_results = @r.lrange(@key,0,-1).map{|q| JSON.parse(q)}
+        end
+      else
+        final_results = old_results
       end
       
       final_results = final_results.map do |result| 

@@ -17,12 +17,14 @@ First, instantiate a new cache object.
       Entry.all(:order => :created_time.desc, :created_time.gt => date, :blog_id => 12)
     end
 The first paramater passed to the constructor is the name you want to give to this cache in Redis as Silver allows to creates as many caches for  different queries as you would like. The second paramater is the name of the field that you will be using to determine if there are new entries. Finally, you pass the constructor a block that will receive the date of the newest cached entry from Redis. You must return the entries in reverse chronological order for Silver to be able to keep them in order. Silver will then query the database/service for newer entries when the instance's find method is called.
-    cache.find do |entry|
+    results = cache.find do |entry|
       attrs = entry.attributes
       author = {:author_name => entry.author[:name]}
       attrs.merge author
     end
 The find method of a cache instance takes a block that will be called for every new entry. The results of the block call should be a hash that will be stored in the cache. The whole thing will be converted into JSON and stashed in the Redis cache. From now on the database will never have to be hit again to return this value. The find method returns an array of all the results old and new from the Redis cache. 
+If you just want to read from the cache without hitting the database, simply call find without a block and with a single param:    false
+    results = cache.find(false)
 Currently, the cache does not support the changing of cached entries and is, thus, intended for data that is unlikely to change once it has been written to the database. This feature will be included in future releases of Silver.
 Finally, Silver provides a cull method.
     cache.cull(30)

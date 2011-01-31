@@ -148,11 +148,15 @@ describe "cacher" do
 
    end
 
-   it "retrieves old results from redis" do
+   it "retrieves just old results" do
 
-   end
-
-   it "culls the cache" do
+      cache = Silver::Cache.new("parents","date") do |date|
+          Parent.all(:order => :date.desc, :date.gt => date)
+      end
+      results = cache.find(false)
+      results.should eq([{"name"=>"Baz", "id"=>2, "age"=>33, "date"=>"2011-01-28T10:40:45-05:00", "children"=>["Bar"]}, 
+                         {"name"=>"Erik", "id"=>1, "age"=>24, "date"=>"2011-01-28T10:34:10-05:00", "children"=>["Foo"]}, 
+                         {"name"=>"Erik Hinton", "id"=>11, "age"=>2, "date"=>"1980-01-02T00:00:00+00:00", "children"=>[]}])
 
    end
 
