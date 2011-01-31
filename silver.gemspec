@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     "lib/silver/common_words.rb",
     "lib/silver/indexer.rb",
     "lib/silver/search.rb",
+    "silver.gemspec",
     "spec/silver_spec.rb",
     "spec/spec_helper.rb",
     "spec/support/db.rb",
