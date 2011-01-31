@@ -9,7 +9,8 @@ The goal of Silver is so that you never have to do that again. Rather than conne
 
 ### Dependency Note
 Silver require a version of Redis >= 2.0 running on your computer
-Runtime gem dependincies are 
+Runtime gem dependincies are:
+
 * redis ~> 2.1.1
 * yajl-ruby >= 0.7.7
 * text ~> 0.2.0 
