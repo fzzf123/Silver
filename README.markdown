@@ -7,6 +7,13 @@ Silver is a lightweight, redis-backed database cacher and indexer.
 As it says on the tin, Silver is going to make your database queries much faster. Now it is no secret that Redis is fantastic to use as a cache/index. However, you have to write the same boilerplate to use it as cache over and over: find most recent cached entry, look for newer entries in the database, cache it to redis, combine with old results. Rinse, repeat.
 The goal of Silver is so that you never have to do that again. Rather than connecting to the database/service for you, you simply wrap your calls in Silver and it does the rest. This means you can use silver to speed up calls to databases, calls APIs, CURLS, really whatever you want.
 
+### Dependency Note
+Silver require a version of Redis >= 2.0 running on your computer
+Runtime gem dependincies are 
+* redis ~> 2.1.1
+* yajl-ruby >= 0.7.7
+* text ~> 0.2.0 
+
 ### A Simple Caching Example
 
 First make sure you have Silver installed.
