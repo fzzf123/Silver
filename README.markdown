@@ -18,7 +18,9 @@ Runtime gem dependincies are:
 ### A Simple Caching Example
 
 First make sure you have Silver installed.
+
     gem install silver
+
 Now, let's pretend you have an app that queries your database for entries frequently. Entries are added frequently. Furthermore, you only want Entries that come from a specific blog, blog #12. Also you want to grab something from an association of the Entry row in the database. Let's say the author's name.
 First, instantiate a new cache object.
     cache = Silver::Cache.new("12_entries","created_time") do |date|
