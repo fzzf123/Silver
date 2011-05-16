@@ -38,7 +38,7 @@ module Silver
                 phones = self.find_matching_phones(phones)
                 phones
             end
-            results = morphed_words.reduce{|memo,obj| memo & obj}.slice(@offset,@offset+@number)
+            results = morphed_words.reduce{|memo,obj| memo & obj}.slice(@offset,@number)
             results.map{|result| accessor.call(result)}
         end
 
