@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{silver}
-  s.version = "0.2.1"
+  s.version = "0.2.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Erik Hin-tone"]
-  s.date = %q{2011-01-31}
+  s.date = %q{2011-05-17}
   s.description = %q{A lightweight, Redis-backed cacher and indexer for databases, REST API's, really anything you can query.}
   s.email = %q{hinton.erik@gmail.com}
   s.extra_rdoc_files = [
