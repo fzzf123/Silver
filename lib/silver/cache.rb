@@ -123,8 +123,11 @@ module Silver
     # 
     # length is the number of entries to reduce the redis to 
 
-    def cull(length)
-
+    def cull(length,unique_key=nil)
+        
+        if unique_key
+          cull_dupes_by(unique_key)
+        end
         @r.ltrim(@key,0,length-1)
 
     end
@@ -135,6 +138,16 @@ module Silver
     # of the redis list. This ensures that the first result will always be the newest.
     # Also turns every result hash into JSON before writing because Redis is string based.
     # Find will automatically parse these JSON strings upon retrieval.
+
+    def cull_dupes_by(unique_key)
+       dup_indices = []
+       results = @r.lrange(@key,0,-1)
+       keyed_results = results.map{|q| JSON.parse(q)[unique_key]}
+       elems = keyed_results.inject([]){|memo,obj| memo.include?(obj) ? memo << "dup" : memo << obj }
+       elems.each_with_index{|obj,i| dup_indices << i if obj == "dup"}
+       dup_indices.each{|i| @r.lset(@key,i,"dup")}
+       @r.lrem(@key,0,"dup")
+    end
 
     def write_new(results)
           
