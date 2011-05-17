@@ -123,13 +123,20 @@ module Silver
     # 
     # length is the number of entries to reduce the redis to 
 
-    def cull(length,unique_key=nil)
+    def cull(length,unique_key=nil,return_results=false)
         
         if unique_key
           cull_dupes_by(unique_key)
         end
         @r.ltrim(@key,0,length-1)
-
+        if return_results
+          final_results = @r.lrange(@key,0,-1).map{|q| JSON.parse(q)}
+          final_results = final_results.map do |result| 
+              result.to_bare
+          end
+        else
+          nil
+        end
     end
     
     private
